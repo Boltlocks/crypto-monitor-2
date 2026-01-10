@@ -1,669 +1,292 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fear & Greed Market Monitor</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Unbounded:wght@300;600;800&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fear & Greed Market Monitor</title>
 
-        :root {
-            --bg-dark: #0a0a0f;
-            --bg-card: #14141f;
-            --accent-fear: #ef4444;
-            --accent-greed: #10b981;
-            --accent-neutral: #6366f1;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --border: #1e293b;
-        }
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-        body {
-            font-family: 'Space Mono', monospace;
-            background: var(--bg-dark);
-            color: var(--text-primary);
-            overflow-x: hidden;
-        }
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Unbounded:wght@300;600;800&display=swap" rel="stylesheet">
 
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 20% 30%, rgba(239, 68, 68, 0.15) 0%, transparent 40%),
-                radial-gradient(circle at 80% 70%, rgba(16, 185, 129, 0.15) 0%, transparent 40%),
-                radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: 0;
-        }
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        .app {
-            position: relative;
-            z-index: 1;
-            min-height: 100vh;
-            padding: 2rem;
-        }
+    :root {
+      --bg-dark: #0a0a0f;
+      --bg-card: #14141f;
+      --accent-fear: #ef4444;
+      --accent-greed: #10b981;
+      --accent-neutral: #6366f1;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --border: #1e293b;
+    }
 
-        header {
-            text-align: center;
-            margin-bottom: 3rem;
-            animation: fadeIn 0.8s ease-out;
-        }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      overflow-x: hidden;
+    }
 
-        h1 {
-            font-family: 'Unbounded', cursive;
-            font-size: 3.5rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #ef4444 0%, #6366f1 50%, #10b981 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.02em;
-        }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(239, 68, 68, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(16, 185, 129, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
 
-        .subtitle {
-            color: var(--text-secondary);
-            font-size: 1rem;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-        }
+    .app {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      padding: 2rem;
+    }
 
-        .asset-toggle {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            animation: slideUp 0.8s ease-out 0.2s backwards;
-        }
+    header { text-align: center; margin-bottom: 3rem; }
 
-        .toggle-btn {
-            background: var(--bg-card);
-            border: 2px solid var(--border);
-            color: var(--text-primary);
-            padding: 0.75rem 2rem;
-            font-family: 'Space Mono', monospace;
-            font-size: 0.9rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            position: relative;
-            overflow: hidden;
-        }
+    h1 {
+      font-family: 'Unbounded', cursive;
+      font-size: 3.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ef4444 0%, #6366f1 50%, #10b981 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
 
-        .toggle-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            transition: left 0.5s;
-        }
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
 
-        .toggle-btn:hover::before {
-            left: 100%;
-        }
+    .asset-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
 
-        .toggle-btn.active {
-            border-color: var(--accent-neutral);
-            background: rgba(99, 102, 241, 0.2);
-            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
-        }
+    .toggle-btn {
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.75rem 2rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
 
-        .dashboard {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            animation: fadeIn 0.8s ease-out 0.4s backwards;
-        }
+    .toggle-btn.active {
+      border-color: var(--accent-neutral);
+      background: rgba(99, 102, 241, 0.2);
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+    }
 
-        .dashboard.single-column {
-            grid-template-columns: 1fr;
-            max-width: 800px;
-        }
+    .dashboard {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
 
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 2rem;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
+    .dashboard.single-column {
+      grid-template-columns: 1fr;
+      max-width: 800px;
+    }
 
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-        }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
 
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--accent-fear), var(--accent-neutral), var(--accent-greed));
-        }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-fear), var(--accent-neutral), var(--accent-greed));
+    }
 
-        .card-title {
-            font-family: 'Unbounded', cursive;
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            color: var(--text-primary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
+    .card-title {
+      font-family: 'Unbounded', cursive;
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
 
-        .fear-greed-display {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 3rem;
-        }
+    .fear-greed-display {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 3rem;
+    }
 
-        .index-value {
-            font-family: 'Unbounded', cursive;
-            font-size: 8rem;
-            font-weight: 800;
-            line-height: 1;
-            margin: 1rem 0;
-            animation: pulse 2s ease-in-out infinite;
-        }
+    .index-value {
+      font-family: 'Unbounded', cursive;
+      font-size: 8rem;
+      font-weight: 800;
+      line-height: 1;
+      margin: 1rem 0;
+    }
 
-        .index-label {
-            font-size: 1.5rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-top: 1rem;
-        }
+    .index-label {
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 1rem;
+    }
 
-        .gauge-container {
-            width: 100%;
-            max-width: 600px;
-            height: 40px;
-            background: var(--bg-dark);
-            border-radius: 20px;
-            margin: 2rem auto;
-            position: relative;
-            overflow: hidden;
-        }
+    .gauge-container {
+      width: 100%;
+      max-width: 600px;
+      height: 40px;
+      background: var(--bg-dark);
+      border-radius: 20px;
+      margin: 2rem auto;
+      position: relative;
+      overflow: hidden;
+    }
 
-        .gauge-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent-fear), #f59e0b, var(--accent-greed));
-            border-radius: 20px;
-            transition: width 1s ease;
-            position: relative;
-        }
+    .gauge-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-fear), #f59e0b, var(--accent-greed));
+      border-radius: 20px;
+      transition: width 1s ease;
+      position: relative;
+    }
 
-        .gauge-marker {
-            position: absolute;
-            width: 4px;
-            height: 50px;
-            background: white;
-            top: -5px;
-            transform: translateX(-2px);
-            box-shadow: 0 0 10px rgba(255,255,255,0.5);
-        }
+    .gauge-marker {
+      position: absolute;
+      width: 4px;
+      height: 50px;
+      background: white;
+      top: -5px;
+      transform: translateX(-2px);
+      box-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
 
-        .price-card {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
+    .price-card { display: flex; flex-direction: column; gap: 1rem; }
 
-        .price-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 8px;
-            border-left: 3px solid var(--accent-neutral);
-        }
+    .price-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent-neutral);
+    }
 
-        .price-label {
-            font-weight: 700;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
+    .price-label { font-weight: 700; color: var(--text-secondary); font-size: 0.9rem; }
 
-        .price-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
+    .price-value { font-size: 1.5rem; font-weight: 700; }
 
-        .price-change {
-            font-size: 0.9rem;
-            margin-top: 0.25rem;
-        }
+    .price-change { font-size: 0.9rem; margin-top: 0.25rem; }
 
-        .positive {
-            color: var(--accent-greed);
-        }
+    .positive { color: var(--accent-greed); }
+    .negative { color: var(--accent-fear); }
 
-        .negative {
-            color: var(--accent-fear);
-        }
+    .alert-zones {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
 
-        .alert-zones {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
+    .zone {
+      padding: 1.5rem;
+      border-radius: 8px;
+      text-align: center;
+      border: 2px solid;
+    }
 
-        .zone {
-            padding: 1.5rem;
-            border-radius: 8px;
-            text-align: center;
-            border: 2px solid;
-            transition: all 0.3s ease;
-        }
+    .zone-fear { border-color: var(--accent-fear); background: rgba(239, 68, 68, 0.1); }
+    .zone-greed { border-color: var(--accent-greed); background: rgba(16, 185, 129, 0.1); }
 
-        .zone.active {
-            animation: glow 2s ease-in-out infinite;
-        }
+    .zone-title { font-weight: 700; margin-bottom: 0.5rem; font-size: 1.1rem; }
+    .zone-range { font-size: 0.9rem; color: var(--text-secondary); }
 
-        .zone-fear {
-            border-color: var(--accent-fear);
-            background: rgba(239, 68, 68, 0.1);
-        }
+    .loading { text-align: center; padding: 4rem; font-size: 1.2rem; color: var(--text-secondary); }
 
-        .zone-greed {
-            border-color: var(--accent-greed);
-            background: rgba(16, 185, 129, 0.1);
-        }
+    .error {
+      max-width: 900px;
+      margin: 1rem auto 0;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--accent-fear);
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+      color: var(--accent-fear);
+    }
 
-        .zone-title {
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            font-size: 1.1rem;
-        }
+    .last-updated {
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      margin-top: 2rem;
+      letter-spacing: 0.05em;
+    }
 
-        .zone-range {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-
-        .loading {
-            text-align: center;
-            padding: 4rem;
-            font-size: 1.2rem;
-            color: var(--text-secondary);
-        }
-
-        .error {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid var(--accent-fear);
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-            color: var(--accent-fear);
-        }
-
-        .last-updated {
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-            margin-top: 2rem;
-            letter-spacing: 0.05em;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-            50% {
-                opacity: 0.9;
-                transform: scale(1.02);
-            }
-        }
-
-        @keyframes glow {
-            0%, 100% {
-                box-shadow: 0 0 10px currentColor;
-            }
-            50% {
-                box-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .dashboard {
-                grid-template-columns: 1fr;
-            }
-
-            h1 {
-                font-size: 2rem;
-            }
-
-            .index-value {
-                font-size: 5rem;
-            }
-
-            .asset-toggle {
-                flex-wrap: wrap;
-            }
-        }
-    </style>
+    @media (max-width: 768px) {
+      .dashboard { grid-template-columns: 1fr; }
+      h1 { font-size: 2rem; }
+      .index-value { font-size: 5rem; }
+    }
+  </style>
 </head>
+
 <body>
-    <div id="root"></div>
+  <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+  <script type="text/babel">
+    const { useState, useEffect } = React;
 
-        function App() {
-            const [activeAsset, setActiveAsset] = useState('BTC');
-            const [fearGreedData, setFearGreedData] = useState(null);
-            const [cryptoPrices, setCryptoPrices] = useState(null);
-            const [stockData, setStockData] = useState(null);
-            const [goldData, setGoldData] = useState(null);
-            const [loading, setLoading] = useState(true);
-            const [error, setError] = useState(null);
-            const [lastUpdate, setLastUpdate] = useState(null);
+    function App() {
+      const [activeAsset, setActiveAsset] = useState('BTC');
+      const [fearGreedData, setFearGreedData] = useState(null);
+      const [cryptoPrices, setCryptoPrices] = useState(null);
+      const [stockData, setStockData] = useState(null);
+      const [goldData, setGoldData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      const [lastUpdate, setLastUpdate] = useState(null);
 
-            const fetchFearGreed = async () => {
-                try {
-                    const response = await fetch('https://api.alternative.me/fng/');
-                    const data = await response.json();
-                    if (data && data.data && data.data.length > 0) {
-                        setFearGreedData(data.data[0]);
-                        setLastUpdate(new Date());
-                    }
-                } catch (err) {
-                    console.error('Error fetching Fear & Greed:', err);
-                    setError('Failed to fetch Fear & Greed Index');
-                }
-            };
-
-            const fetchCryptoPrices = async () => {
-                try {
-                    const response = await fetch(
-                        'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true'
-                    );
-                    const data = await response.json();
-                    setCryptoPrices(data);
-                } catch (err) {
-                    console.error('Error fetching crypto prices:', err);
-                }
-            };
-
-            const fetchStockData = async () => {
-                // Note: For production, you'd want to use a real API with your key
-                // For demo purposes, using mock data
-                setStockData({
-                    price: 4783.45,
-                    change: 1.2
-                });
-            };
-
-            const fetchGoldData = async () => {
-                // Mock data for gold - you'd want to use a real API
-                setGoldData({
-                    price: 2067.30,
-                    change: -0.5
-                });
-            };
-
-            useEffect(() => {
-                const fetchAllData = async () => {
-                    setLoading(true);
-                    await Promise.all([
-                        fetchFearGreed(),
-                        fetchCryptoPrices(),
-                        fetchStockData(),
-                        fetchGoldData()
-                    ]);
-                    setLoading(false);
-                };
-
-                fetchAllData();
-                const interval = setInterval(fetchAllData, 300000); // 5 minutes
-
-                return () => clearInterval(interval);
-            }, []);
-
-            const getIndexColor = (value) => {
-                if (value <= 25) return '#ef4444';
-                if (value <= 45) return '#f59e0b';
-                if (value <= 55) return '#6366f1';
-                if (value <= 75) return '#10b981';
-                return '#10b981';
-            };
-
-            const getAssetData = () => {
-                switch(activeAsset) {
-                    case 'BTC':
-                        return {
-                            name: 'Bitcoin',
-                            symbol: 'BTC',
-                            price: cryptoPrices?.bitcoin?.usd,
-                            change: cryptoPrices?.bitcoin?.usd_24h_change
-                        };
-                    case 'ETH':
-                        return {
-                            name: 'Ethereum',
-                            symbol: 'ETH',
-                            price: cryptoPrices?.ethereum?.usd,
-                            change: cryptoPrices?.ethereum?.usd_24h_change
-                        };
-                    case 'SPX':
-                        return {
-                            name: 'S&P 500',
-                            symbol: 'SPX',
-                            price: stockData?.price,
-                            change: stockData?.change
-                        };
-                    case 'GOLD':
-                        return {
-                            name: 'Gold',
-                            symbol: 'XAU/USD',
-                            price: goldData?.price,
-                            change: goldData?.change
-                        };
-                    default:
-                        return null;
-                }
-            };
-
-            if (loading) {
-                return (
-                    <div className="app">
-                        <div className="loading">Loading market data...</div>
-                    </div>
-                );
-            }
-
-            const fgValue = parseInt(fearGreedData?.value || 50);
-            const fgClassification = fearGreedData?.value_classification || 'Neutral';
-            const indexColor = getIndexColor(fgValue);
-            const assetData = getAssetData();
-            const isCrypto = activeAsset === 'BTC' || activeAsset === 'ETH';
-
-            return (
-                <div className="app">
-                    <header>
-                        <h1>Market Sentiment Monitor</h1>
-                        <p className="subtitle">Fear & Greed Intelligence</p>
-                    </header>
-
-                    <div className="asset-toggle">
-                        <button 
-                            className={`toggle-btn ${activeAsset === 'BTC' ? 'active' : ''}`}
-                            onClick={() => setActiveAsset('BTC')}
-                        >
-                            Bitcoin
-                        </button>
-                        <button 
-                            className={`toggle-btn ${activeAsset === 'ETH' ? 'active' : ''}`}
-                            onClick={() => setActiveAsset('ETH')}
-                        >
-                            Ethereum
-                        </button>
-                        <button 
-                            className={`toggle-btn ${activeAsset === 'SPX' ? 'active' : ''}`}
-                            onClick={() => setActiveAsset('SPX')}
-                        >
-                            S&P 500
-                        </button>
-                        <button 
-                            className={`toggle-btn ${activeAsset === 'GOLD' ? 'active' : ''}`}
-                            onClick={() => setActiveAsset('GOLD')}
-                        >
-                            Gold
-                        </button>
-                    </div>
-
-                    <div className={`dashboard ${!isCrypto ? 'single-column' : ''}`}>
-                        {isCrypto && (
-                            <div className="card fear-greed-display">
-                                <h2 className="card-title">Crypto Fear & Greed Index</h2>
-                                <div 
-                                    className="index-value" 
-                                    style={{ color: indexColor }}
-                                >
-                                    {fgValue}
-                                </div>
-                                <div 
-                                    className="index-label"
-                                    style={{ color: indexColor }}
-                                >
-                                    {fgClassification}
-                                </div>
-                                <div className="gauge-container">
-                                    <div 
-                                        className="gauge-fill" 
-                                        style={{ width: `${fgValue}%` }}
-                                    >
-                                        <div 
-                                            className="gauge-marker"
-                                            style={{ left: `${fgValue}%` }}
-                                        ></div>
-                                    </div>
-                                </div>
-                                <p style={{ 
-                                    marginTop: '1rem', 
-                                    fontSize: '0.9rem', 
-                                    color: 'var(--text-secondary)',
-                                    fontStyle: 'italic'
-                                }}>
-                                    * Fear & Greed Index is specific to cryptocurrency markets
-                                </p>
-                            </div>
-                        )}
-
-                        <div className="card price-card">
-                            <h2 className="card-title">{assetData?.name} Price</h2>
-                            <div className="price-item">
-                                <div>
-                                    <div className="price-label">{assetData?.symbol}</div>
-                                    <div className="price-value">
-                                        ${assetData?.price?.toLocaleString('en-US', {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2
-                                        })}
-                                    </div>
-                                    <div className={`price-change ${assetData?.change >= 0 ? 'positive' : 'negative'}`}>
-                                        {assetData?.change >= 0 ? '▲' : '▼'} {Math.abs(assetData?.change || 0).toFixed(2)}%
-                                    </div>
-                                </div>
-                            </div>
-                            {!isCrypto && (
-                                <p style={{ 
-                                    marginTop: '1rem', 
-                                    padding: '1rem',
-                                    background: 'rgba(99, 102, 241, 0.1)',
-                                    borderRadius: '8px',
-                                    fontSize: '0.9rem', 
-                                    color: 'var(--text-secondary)',
-                                    lineHeight: '1.6'
-                                }}>
-                                    ℹ️ The Fear & Greed Index is specific to cryptocurrency markets. 
-                                    Traditional assets like stocks and gold have their own sentiment indicators (VIX, etc.).
-                                </p>
-                            )}
-                        </div>
-
-                        {isCrypto && (
-                            <div className="card alert-zones">
-                                <h2 className="card-title" style={{ gridColumn: '1 / -1' }}>Alert Zones</h2>
-                                <div className={`zone zone-fear ${fgValue <= 20 ? 'active' : ''}`}>
-                                    <div className="zone-title">🚨 EXTREME FEAR</div>
-                                    <div className="zone-range">≤ 20</div>
-                                    <div style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>BUY NOW</div>
-                                </div>
-                                <div className={`zone zone-greed ${fgValue >= 80 ? 'active' : ''}`}>
-                                    <div className="zone-title">🚨 EXTREME GREED</div>
-                                    <div className="zone-range">≥ 80</div>
-                                    <div style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>SELL NOW</div>
-                                </div>
-                                <div className={`zone zone-fear ${fgValue <= 25 && fgValue > 20 ? 'active' : ''}`}>
-                                    <div className="zone-title">⚠️ Fear</div>
-                                    <div className="zone-range">21-25</div>
-                                    <div style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>Prepare to Buy</div>
-                                </div>
-                                <div className={`zone zone-greed ${fgValue >= 75 && fgValue < 80 ? 'active' : ''}`}>
-                                    <div className="zone-title">⚠️ Greed</div>
-                                    <div className="zone-range">75-79</div>
-                                    <div style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>Prepare to Sell</div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {lastUpdate && (
-                        <div className="last-updated">
-                            Last Updated: {lastUpdate.toLocaleString()}
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        ReactDOM.render(<App />, document.getElementById('root'));
-    </script>
-</body>
-</html>
+      const fetchFearGreed = async () => {
+        try {
+          const response = await fetch('https://api.alternative.me/fng/');
+          if (!response.ok) throw new Error(`Fear&Greed HTTP ${response.status}`);
+          const data = await response.json();
+          if (data && data.data && data.data.length > 0) {
+            setFearGreedData(data.data[0]);
+            setLastUpdate(new Date());
+          } else {
+            throw new Error('Fear&Greed unexpected payload');
+          }
+        } catch (err) {
+          console.error('Error fetching Fear & Greed:', err);
+          setError('Failed to fetch Fear & Greed Index. Open DevTools → Console/Net
