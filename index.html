@@ -114,6 +114,7 @@
       color: var(--text-primary);
       text-transform: uppercase;
       letter-spacing: 0.05em;
+      text-align: center;
     }
 
     .index-value {
@@ -122,6 +123,7 @@
       font-weight: 800;
       line-height: 1;
       margin-top: 0.5rem;
+      text-align: center;
     }
 
     .index-label {
@@ -129,41 +131,60 @@
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
+      text-align: center;
+    }
+
+    .meta-row {
+      margin-top: 0.6rem;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      text-align: center;
     }
 
     .gauge-container {
       width: 100%;
-      max-width: 700px;
-      height: 40px;
-      background: var(--bg-dark);
-      border-radius: 20px;
+      max-width: 760px;
+      height: 44px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 999px;
       margin: 1.25rem auto 0;
       position: relative;
       overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.45);
     }
 
-    .gauge-fill {
-      height: 100%;
+    .gauge-gradient {
+      position: absolute;
+      inset: 0;
       background: linear-gradient(90deg, var(--accent-fear), #f59e0b, var(--accent-greed));
-      border-radius: 20px;
-      transition: width 1s ease;
-      position: relative;
+      opacity: 1;
     }
 
     .gauge-marker {
       position: absolute;
+      top: 50%;
       width: 4px;
-      height: 50px;
-      background: white;
-      top: -5px;
-      transform: translateX(-2px);
-      box-shadow: 0 0 10px rgba(255,255,255,0.5);
+      height: 58px;
+      background: rgba(255,255,255,0.95);
+      transform: translate(-2px, -50%);
+      border-radius: 2px;
+      box-shadow: 0 0 12px rgba(255,255,255,0.55);
+      pointer-events: none;
+    }
+
+    .gauge-cap {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.0));
+      pointer-events: none;
     }
 
     .chart-wrap {
       position: relative;
       width: 100%;
-      height: 360px;
+      height: 380px;
       margin-top: 1.5rem;
     }
 
@@ -258,6 +279,7 @@
       h1 { font-size: 2.1rem; }
       .price-grid { grid-template-columns: 1fr; }
       .index-value { font-size: 4.2rem; }
+      .chart-wrap { height: 320px; }
     }
   </style>
 </head>
@@ -267,14 +289,18 @@
   <script type="text/babel">
     const { useEffect, useMemo, useRef, useState } = React;
 
-    function formatMoney(n) {
-      if (typeof n !== "number") return "N/A";
+    function money(n) {
+      if (typeof n !== "number") return null;
       return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    function formatPct(n) {
-      if (typeof n !== "number") return "N/A";
+    function pct(n) {
+      if (typeof n !== "number") return null;
       return `${Math.abs(n).toFixed(2)}%`;
+    }
+
+    function clamp(n, min, max) {
+      return Math.min(max, Math.max(min, n));
     }
 
     function getIndexColor(value) {
@@ -299,16 +325,18 @@
       const fgChartInstance = useRef(null);
 
       const fetchFearGreedHistory = async () => {
-        const res = await fetch("https://api.alternative.me/fng/?limit=90&format=json");
-        if (!res.ok) throw new Error("Fear & Greed fetch failed");
+        const url = "https://api.alternative.me/fng/?limit=2000&format=json";
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Fear and Greed fetch failed");
         const data = await res.json();
-        const rows = (data?.data || []).slice().reverse(); // oldest -> newest
+        const rows = (data?.data || []).slice().reverse();
         setFgHistory(rows);
         setFgLatest(rows.length ? rows[rows.length - 1] : null);
       };
 
       const fetchCryptoPrices = async () => {
-        const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true");
+        const url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true";
+        const res = await fetch(url);
         if (!res.ok) throw new Error("Crypto price fetch failed");
         const data = await res.json();
         setCryptoPrices(data);
@@ -339,34 +367,34 @@
       }, [fgLatest]);
 
       const fgClassification = fgLatest?.value_classification || "Neutral";
-        const fg7dChange = useMemo(() => {
-  if (!fgHistory.length) return null;
 
-  const latest = Number(fgHistory[fgHistory.length - 1]?.value);
-  if (!Number.isFinite(latest)) return null;
+      const fg7dChange = useMemo(() => {
+        if (!fgHistory.length) return null;
 
-  const nowTs = Number(fgHistory[fgHistory.length - 1]?.timestamp) * 1000;
-  if (!Number.isFinite(nowTs)) return null;
+        const latest = Number(fgHistory[fgHistory.length - 1]?.value);
+        if (!Number.isFinite(latest)) return null;
 
-  const targetTs = nowTs - 7 * 24 * 60 * 60 * 1000;
+        const nowTs = Number(fgHistory[fgHistory.length - 1]?.timestamp) * 1000;
+        if (!Number.isFinite(nowTs)) return null;
 
-  // find the closest point at or before targetTs
-  let idx = -1;
-  for (let i = fgHistory.length - 1; i >= 0; i--) {
-    const ts = Number(fgHistory[i]?.timestamp) * 1000;
-    if (Number.isFinite(ts) && ts <= targetTs) {
-      idx = i;
-      break;
-    }
-  }
-  if (idx === -1) return null;
+        const targetTs = nowTs - 7 * 24 * 60 * 60 * 1000;
 
-  const old = Number(fgHistory[idx]?.value);
-  if (!Number.isFinite(old)) return null;
+        let idx = -1;
+        for (let i = fgHistory.length - 1; i >= 0; i--) {
+          const ts = Number(fgHistory[i]?.timestamp) * 1000;
+          if (Number.isFinite(ts) && ts <= targetTs) {
+            idx = i;
+            break;
+          }
+        }
+        if (idx === -1) return null;
 
-  return latest - old;
-}, [fgHistory]);
-        
+        const old = Number(fgHistory[idx]?.value);
+        if (!Number.isFinite(old)) return null;
+
+        return latest - old;
+      }, [fgHistory]);
+
       const indexColor = getIndexColor(fgValue);
 
       const btc = {
@@ -379,6 +407,8 @@
         change: cryptoPrices?.ethereum?.usd_24h_change
       };
 
+      const daysShown = fgHistory.length;
+
       useEffect(() => {
         if (!fgChartRef.current) return;
         if (!fgHistory.length) return;
@@ -386,10 +416,13 @@
         const labels = fgHistory.map((d) => {
           const ts = Number(d.timestamp) * 1000;
           const dt = Number.isFinite(ts) ? new Date(ts) : new Date();
-          return dt.toLocaleDateString(undefined, { month: "short", day: "2-digit" });
+          return dt.toLocaleDateString(undefined, { year: "2-digit", month: "short" });
         });
 
-        const values = fgHistory.map((d) => Number(d.value));
+        const values = fgHistory.map((d) => {
+          const v = Number(d.value);
+          return Number.isFinite(v) ? v : null;
+        });
 
         if (fgChartInstance.current) {
           fgChartInstance.current.destroy();
@@ -405,7 +438,9 @@
               data: values,
               tension: 0.25,
               borderWidth: 2,
-              pointRadius: 0
+              pointRadius: 0,
+              borderColor: "rgba(241, 245, 249, 0.90)",
+              fill: false
             }]
           },
           options: {
@@ -425,7 +460,10 @@
               },
               x: {
                 grid: { display: false },
-                ticks: { color: "rgba(148, 163, 184, 0.9)", maxTicksLimit: 8 }
+                ticks: {
+                  color: "rgba(148, 163, 184, 0.9)",
+                  maxTicksLimit: 10
+                }
               }
             }
           }
@@ -440,39 +478,40 @@
         );
       }
 
+      const markerLeft = `${clamp(fgValue, 0, 100)}%`;
+
       return (
         <div className="app">
           <header>
             <h1>Crypto Fear & Greed</h1>
-            <p className="subtitle">Sentiment plus BTC/ETH snapshot</p>
+            <p className="subtitle">Sentiment plus BTC and ETH snapshot</p>
           </header>
 
           {error && <div className="error">{error}</div>}
 
           <div className="dashboard">
-            <div className="card" style={{ textAlign: "center" }}>
+            <div className="card">
               <h2 className="card-title">Fear & Greed Index</h2>
 
               <div className="index-value" style={{ color: indexColor }}>
                 {fgValue}
               </div>
 
-             <div className="index-label" style={{ color: indexColor }}>
-  {fgClassification}
-</div>
+              <div className="index-label" style={{ color: indexColor }}>
+                {fgClassification}
+              </div>
 
-<div style={{ marginTop: "0.6rem", color: "var(--text-secondary)", fontSize: "0.95rem" }}>
-  7D change:{" "}
-  <span style={{ color: fg7dChange === null ? "var(--text-secondary)" : (fg7dChange >= 0 ? "#10b981" : "#ef4444"), fontWeight: 700 }}>
-    {fg7dChange === null ? "N/A" : `${fg7dChange >= 0 ? "+" : ""}${fg7dChange.toFixed(0)}`}
-  </span>
-</div>
+              <div className="meta-row">
+                7D change{" "}
+                <span style={{ color: fg7dChange === null ? "var(--text-secondary)" : (fg7dChange >= 0 ? "#10b981" : "#ef4444"), fontWeight: 700 }}>
+                  {fg7dChange === null ? "N/A" : `${fg7dChange >= 0 ? "+" : ""}${fg7dChange.toFixed(0)}`}
+                </span>
+              </div>
 
-
-              <div className="gauge-container">
-                <div className="gauge-fill" style={{ width: `${fgValue}%` }}>
-                  <div className="gauge-marker" style={{ left: `${fgValue}%` }}></div>
-                </div>
+              <div className="gauge-container" aria-label="Fear and Greed gauge">
+                <div className="gauge-gradient"></div>
+                <div className="gauge-marker" style={{ left: markerLeft }}></div>
+                <div className="gauge-cap"></div>
               </div>
 
               <div className="chart-wrap">
@@ -480,34 +519,38 @@
               </div>
 
               <div className="note">
-                This is a crypto wide sentiment index, not specific to BTC or ETH.
+                Showing {daysShown} days of history. If you do not see five years here, it means the public API capped the response size in the browser.
               </div>
             </div>
 
             <div className="grid-2">
               <div className="card">
-                <h2 className="card-title">BTC & ETH</h2>
+                <h2 className="card-title">BTC and ETH</h2>
 
                 <div className="price-grid">
                   <div className="price-item">
                     <div className="price-label">BTC</div>
-                    <div className="price-value">${formatMoney(btc.price)}</div>
+                    <div className="price-value">
+                      {btc.price == null ? "N/A" : `$${money(btc.price)}`}
+                    </div>
                     <div className={`price-change ${(btc.change ?? 0) >= 0 ? "positive" : "negative"}`}>
-                      {(btc.change ?? 0) >= 0 ? "▲" : "▼"} {formatPct(btc.change)}
+                      {(btc.change ?? 0) >= 0 ? "▲" : "▼"} {pct(btc.change) ?? "N/A"}
                     </div>
                   </div>
 
                   <div className="price-item">
                     <div className="price-label">ETH</div>
-                    <div className="price-value">${formatMoney(eth.price)}</div>
+                    <div className="price-value">
+                      {eth.price == null ? "N/A" : `$${money(eth.price)}`}
+                    </div>
                     <div className={`price-change ${(eth.change ?? 0) >= 0 ? "positive" : "negative"}`}>
-                      {(eth.change ?? 0) >= 0 ? "▲" : "▼"} {formatPct(eth.change)}
+                      {(eth.change ?? 0) >= 0 ? "▲" : "▼"} {pct(eth.change) ?? "N/A"}
                     </div>
                   </div>
                 </div>
 
                 <div className="note">
-                  If you want: I can add BTC and ETH history charts too, but that needs another endpoint or a cached JSON file to avoid rate limits.
+                  This page pulls live spot prices. If CoinGecko rate limits you on GitHub Pages, we can switch to a cached JSON file later.
                 </div>
               </div>
 
@@ -517,38 +560,38 @@
                 <div className="alert-zones">
                   <div className={`zone zone-fear ${fgValue <= 20 ? "active" : ""}`}>
                     <div className="zone-title">🚨 EXTREME FEAR</div>
-                    <div className="zone-range">≤ 20</div>
+                    <div className="zone-range">20 and below</div>
                     <div style={{ marginTop: "0.5rem", fontSize: "0.8rem" }}>BUY NOW</div>
                   </div>
 
                   <div className={`zone zone-greed ${fgValue >= 80 ? "active" : ""}`}>
                     <div className="zone-title">🚨 EXTREME GREED</div>
-                    <div className="zone-range">≥ 80</div>
+                    <div className="zone-range">80 and above</div>
                     <div style={{ marginTop: "0.5rem", fontSize: "0.8rem" }}>SELL NOW</div>
                   </div>
 
                   <div className={`zone zone-fear ${fgValue <= 25 && fgValue > 20 ? "active" : ""}`}>
                     <div className="zone-title">⚠️ Fear</div>
-                    <div className="zone-range">21–25</div>
-                    <div style={{ marginTop: "0.5rem", fontSize: "0.8rem" }}>Prepare to Buy</div>
+                    <div className="zone-range">21 to 25</div>
+                    <div style={{ marginTop: "0.5rem", fontSize: "0.8rem" }}>Prepare to buy</div>
                   </div>
 
                   <div className={`zone zone-greed ${fgValue >= 75 && fgValue < 80 ? "active" : ""}`}>
                     <div className="zone-title">⚠️ Greed</div>
-                    <div className="zone-range">75–79</div>
-                    <div style={{ marginTop: "0.5rem", fontSize: "0.8rem" }}>Prepare to Sell</div>
+                    <div className="zone-range">75 to 79</div>
+                    <div style={{ marginTop: "0.5rem", fontSize: "0.8rem" }}>Prepare to sell</div>
                   </div>
                 </div>
 
                 <div className="note">
-                  Your monitor.py uses the same thresholds, so the website matches what triggers your emails.
+                  These match your monitor.py thresholds.
                 </div>
               </div>
             </div>
 
             {lastUpdate && (
               <div className="last-updated">
-                Last Updated: {lastUpdate.toLocaleString()}
+                Last updated {lastUpdate.toLocaleString()}
               </div>
             )}
           </div>
@@ -561,4 +604,3 @@
   </script>
 </body>
 </html>
-
